@@ -2,7 +2,7 @@ require("tests.helpers").enable_log()
 
 local new_set = MiniTest.new_set
 local eq = MiniTest.expect.equality
-local adapter = require("taal.adapters.gemini")
+local adapter = require("neogram.adapters.gemini")
 adapter.url = "url"
 
 local T = new_set()

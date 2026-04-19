@@ -1,5 +1,5 @@
-local format_template = require("taal.template_formatter")
-local log = require("taal.log")
+local format_template = require("neogram.template_formatter")
+local log = require("neogram.log")
 
 local function on_chunk_wrap(parse_stream, writer, done_callback)
   return function(error, stream_data)
@@ -43,20 +43,9 @@ return function(post, ResponseWriter, timeout)
 
   local M = {}
 
-  M.send = function(adapter_model, template, user_input)
-    log.fmt_trace("send with adapter_model=%s", adapter_model)
-
-    local adapter = adapter_model.adapter
-
-    local endpoint = adapter:endpoint(adapter_model.model)
-    local headers = adapter.post_headers()
-
-    local adapter_template = adapter.template(template, adapter_model.model)
-    local body_content = format_template(adapter_template, user_input)
-
-    local response = send_request(endpoint, headers, body_content, { timeout = timeout })
+  local function parse_response(response, adapter)
     log.fmt_trace(
-      "sent response: %s",
+      "parse_response: %s",
       response and response.status and vim.inspect(response) or "---no valid response---"
     )
     if response and response.status and response.status == 200 then
@@ -77,7 +66,7 @@ return function(post, ResponseWriter, timeout)
     else
       log.fmt_error(
         "response status is not 200. response status=%s. response=%s",
-        response.status,
+        response and response.status,
         response
       )
       vim.notify(
@@ -85,9 +74,34 @@ return function(post, ResponseWriter, timeout)
         vim.log.levels.ERROR
       )
     end
+    return nil
   end
 
-  M.stream = function(adapter_model, template, user_input, callback)
+  M.send = function(adapter_model, template, user_input, callback)
+    log.fmt_trace("send with adapter_model=%s, async=%s", adapter_model, callback ~= nil)
+
+    local adapter = adapter_model.adapter
+
+    local endpoint = adapter:endpoint(adapter_model.model)
+    local headers = adapter.post_headers()
+
+    local adapter_template = adapter.template(template, adapter_model.model)
+    local body_content = format_template(adapter_template, user_input)
+
+    local extra_opts = { timeout = timeout }
+    if callback then
+      extra_opts.callback = vim.schedule_wrap(function(response)
+        callback(parse_response(response, adapter))
+      end)
+      send_request(endpoint, headers, body_content, extra_opts)
+      return
+    end
+
+    local response = send_request(endpoint, headers, body_content, extra_opts)
+    return parse_response(response, adapter)
+  end
+
+  M.stream = function(adapter_model, template, user_input, callback, scratch_name)
     log.fmt_trace("stream with adapter_model=%s", adapter_model)
 
     local adapter = adapter_model.adapter
@@ -99,7 +113,7 @@ return function(post, ResponseWriter, timeout)
     local body_content = format_template(adapter_template, user_input)
 
     local writer = ResponseWriter:new()
-    writer:create_scratch_buffer()
+    writer:create_scratch_buffer(scratch_name)
 
     local on_chunk = on_chunk_wrap(adapter.parse_stream, writer, callback)
     local extra_opts = {

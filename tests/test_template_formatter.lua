@@ -1,6 +1,6 @@
 local new_set = MiniTest.new_set
 local eq = MiniTest.expect.equality
-local format = require("taal.template_formatter")
+local format = require("neogram.template_formatter")
 
 local T = new_set()
 

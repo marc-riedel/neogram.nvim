@@ -1,10 +1,10 @@
-local log = require("taal.log")
+local log = require("neogram.log")
 
 local M = {}
 
 M.setup = function()
-  M.namespace_hl = vim.api.nvim_create_namespace("taal_hl")
-  M.namespace_inlay = vim.api.nvim_create_namespace("taal_inlay")
+  M.namespace_hl = vim.api.nvim_create_namespace("neogram_hl")
+  M.namespace_inlay = vim.api.nvim_create_namespace("neogram_inlay")
 
   log.fmt_trace(
     "buffer_helper.setup namespace_hl=%s namespace_inlay=%s",
@@ -12,9 +12,9 @@ M.setup = function()
     M.namespace_inlay
   )
 
-  vim.api.nvim_set_hl(0, "TaalIssue", { bg = "DarkRed", fg = "White" })
-  vim.api.nvim_set_hl(0, "TaalImprovement", { bg = "DarkGreen", fg = "White" })
-  vim.api.nvim_set_hl(0, "TaalInlay", { fg = "#A6E22E", italic = true })
+  vim.api.nvim_set_hl(0, "NeogramIssue", { bg = "DarkRed", fg = "White" })
+  vim.api.nvim_set_hl(0, "NeogramImprovement", { bg = "DarkGreen", fg = "White" })
+  vim.api.nvim_set_hl(0, "NeogramInlay", { fg = "#A6E22E", italic = true })
 end
 
 M.current_buffer_nr = function()
@@ -30,12 +30,13 @@ M.current_column_nr = function()
 end
 
 M.add_hl_group = function(info)
+  local end_line_nr = info.end_line_nr or info.line_nr
   local extmark_id = vim.api.nvim_buf_set_extmark(
     info.buf_nr,
     M.namespace_hl,
     info.line_nr - 1,
     info.col_start,
-    { end_row = info.line_nr - 1, end_col = info.col_end, hl_group = info.hl_group }
+    { end_row = end_line_nr - 1, end_col = info.col_end, hl_group = info.hl_group }
   )
 
   log.fmt_trace(
@@ -55,13 +56,14 @@ end
 
 M.add_inlay = function(info)
   log.fmt_trace("add_inlay: info=%s", info)
+  local end_line_nr = info.end_line_nr or info.line_nr
   return vim.api.nvim_buf_set_extmark(
     info.buf_nr,
     M.namespace_inlay,
-    info.line_nr - 1,
+    end_line_nr - 1,
     info.col_end,
     {
-      virt_text = { { " " .. info.alt_text, "TaalInlay" } },
+      virt_text = { { " " .. info.alt_text, "NeogramInlay" } },
       virt_text_pos = "inline",
     }
   )
@@ -88,7 +90,7 @@ M.show_hover = function(text)
     ns,
     0,
     0,
-    { end_row = 0, end_col = #text, hl_group = "TaalInlay" }
+    { end_row = 0, end_col = #text, hl_group = "NeogramInlay" }
   )
 
   local maxw = vim.fn.strdisplaywidth(text)
@@ -112,6 +114,50 @@ M.show_hover = function(text)
       pcall(vim.api.nvim_win_close, win, true)
     end,
   })
+end
+
+M.visual_selection_info = function()
+  local mode = vim.api.nvim_get_mode().mode
+  if mode ~= "v" and mode ~= "V" then
+    return nil
+  end
+
+  local pos_visual_start = vim.fn.getpos("v")
+  local start_line_0, start_col = pos_visual_start[2] - 1, pos_visual_start[3] - 1
+
+  local pos_cursor = vim.fn.getpos(".")
+  local end_line_0, end_col = pos_cursor[2] - 1, pos_cursor[3] - 1
+
+  if end_line_0 < start_line_0 then
+    start_line_0, start_col, end_line_0, end_col = end_line_0, end_col, start_line_0, start_col
+  elseif start_line_0 == end_line_0 and end_col < start_col then
+    start_col, end_col = end_col, start_col
+  end
+
+  log.fmt_trace(
+    "visual_selection_info: start_line_0=%s, start_col=%s, end_line_0=%s, end_col=%s",
+    start_line_0,
+    start_col,
+    end_line_0,
+    end_col
+  )
+
+  local lines
+  if mode == "V" then
+    lines = vim.api.nvim_buf_get_lines(0, start_line_0, end_line_0 + 1, false)
+    start_col = 0
+  else
+    lines = vim.api.nvim_buf_get_text(0, start_line_0, start_col, end_line_0, end_col, {})
+  end
+  local text = table.concat(lines, "\n")
+
+  return {
+    text = text,
+    lines = lines,
+    start_line = start_line_0 + 1,
+    start_col = start_col,
+    is_multiline = #lines > 1,
+  }
 end
 
 M.visual_selection = function()
@@ -152,8 +198,9 @@ M.set_lines = function(line_nr, content)
   vim.api.nvim_buf_set_lines(0, line_nr - 1, line_nr, false, { content })
 end
 
-M.replace_text = function(buf_nr, line_nr, col_start, col_end, text)
-  vim.api.nvim_buf_set_text(buf_nr, line_nr - 1, col_start, line_nr - 1, col_end, { text })
+M.replace_text = function(buf_nr, start_line_nr, col_start, end_line_nr, col_end, text)
+  local replacement = vim.split(text, "\n", { plain = true })
+  vim.api.nvim_buf_set_text(buf_nr, start_line_nr - 1, col_start, end_line_nr - 1, col_end, replacement)
 end
 
 return M

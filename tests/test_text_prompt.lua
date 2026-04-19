@@ -1,7 +1,7 @@
 local Helpers = require("tests.helpers")
 local eq = MiniTest.expect.equality
 local child, T = Helpers.new_child_with_set([[
-  prompt = require('taal.text_prompt').prompt
+  prompt = require('neogram.text_prompt').prompt
 ]])
 
 T["prompt"] = function()

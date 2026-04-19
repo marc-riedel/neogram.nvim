@@ -1,7 +1,7 @@
-*taal.txt* LLM assistance for improving grammar and spelling
+*neogram.txt* LLM assistance for improving grammar and spelling
 
 ------------------------------------------------------------------------------
-                                                                          *Taal*
+                                                                          *Neogram*
 
 FEATURES
 
@@ -27,7 +27,7 @@ DEPENDENCIES
 
 INSTALLATION
 
-This module needs to be set up with `require('taal').setup({})`. The setup arg
+This module needs to be set up with `require('neogram').setup({})`. The setup arg
 `{}` is optional and can be a custom config table, to overwrite the defaults.
 Calling the setup function, with or without a table, is mandatory.
 
@@ -67,7 +67,7 @@ The user configuration table supports these fields:
   to the above structure. <system> and <examples> are optional, the <message>
   is mandatory.
 
-  See: lua/taal/templates for the default templates.
+  See: lua/neogram/templates for the default templates.
 - {adapters} (`table<'claude'|'gemini'|'openai', table<'url',string>>`) url
   per adapter
 - {adapter} (`'claude'|'gemini'|'openai'`, default: `'gemini'`) default
@@ -136,39 +136,39 @@ Claude with the model claude-sonnet-4-5-20250929.
 
 COMMANDS
 
-TaalApplySuggestion                                       *taal-apply-suggestion*
+NeogramApplySuggestion                                       *neogram-apply-suggestion*
     Applies the suggested improvement of the text with an error currently
     under cursor. 
 
-TaalGrammar                                                        *taal-grammar*
+NeogramGrammar                                                        *neogram-grammar*
     Checks grammar and spelling of the line of text currently under cursor. 
-    Grammar and spelling errors are highlighted with the 'TaalIssue' highlight group.
+    Grammar and spelling errors are highlighted with the 'NeogramIssue' highlight group.
     This command takes two optional arguments:
     - <inlay> Shows grammar and spelling improvements as inlay hints using the 
-      'TaalInlay' highlight group.
+      'NeogramInlay' highlight group.
     - <scratch> Writes the complete improved line in a scratch buffer in a vertical
       split.
 
-TaalHover                                                            *taal-hover*
+NeogramHover                                                            *neogram-hover*
     Shows the grammar improvement of the text with an error currently under
     cursor in a popup.
 
-TaalInteract                                                       *taal-interact*
+NeogramInteract                                                       *neogram-interact*
     Asks the user for a prompt and sends this, together with the selected text
     to the LLM. Use in Visual Mode. Note that this ex command cannot be used
-    by using `:TaalInteract` as using the colon will switch Neovim back to
-    normal mode. Map this command to a key using `<Cmd>TaalInteract<Cr>`
+    by using `:NeogramInteract` as using the colon will switch Neovim back to
+    normal mode. Map this command to a key using `<Cmd>NeogramInteract<Cr>`
     instead.
 
-TaalSetSpelllang                                             *taal-set-spelllang*
+NeogramSetSpelllang                                             *neogram-set-spelllang*
     Recognizes the language of the text under cursor and sets the spelling
     language accordingly using the 'spelllang' option.
 
 HIGHLIGHT GROUPS
 
-- 'TaalIssue' - grammar error
-- 'TaalImprovement' - suggested improvement
-- 'TaalInlay' - inlay hint with suggested improvement
+- 'NeogramIssue' - grammar error
+- 'NeogramImprovement' - suggested improvement
+- 'NeogramInlay' - inlay hint with suggested improvement
 
 LOG
 

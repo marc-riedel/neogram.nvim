@@ -2,11 +2,11 @@
 
 ## Project overview
 
-taal.nvim is a Neovim plugin written in Lua that uses LLMs (Claude, Gemini, OpenAI) to check and improve grammar and spelling of natural language text. It highlights errors, shows word-level diffs, and can apply suggestions individually or all at once. There is also an Ollama adapter, but it is not documented for end users in README.md because it is not reliable enough for production use. It is useful for testing since it's free.
+neogram.nvim is a Neovim plugin written in Lua that uses LLMs (Claude, Gemini, OpenAI) to check and improve grammar and spelling of natural language text. It highlights errors, shows word-level diffs, and can apply suggestions individually or all at once. There is also an Ollama adapter, but it is not documented for end users in README.md because it is not reliable enough for production use. It is useful for testing since it's free.
 
 ## Directory structure
 
-- `lua/taal/` - Main source code
+- `lua/neogram/` - Main source code
   - `adapters/` - LLM provider implementations (claude, gemini, ollama, openai_responses)
   - `templates/` - Prompt templates (grammar, interact, recognize_language)
   - `init.lua` - Plugin entry point and setup
@@ -20,7 +20,7 @@ taal.nvim is a Neovim plugin written in Lua that uses LLMs (Claude, Gemini, Open
   - `mock.lua` - Mock objects with argument capture
   - `helpers.lua` - Test utilities
 - `scripts/minimal_init.lua` - Test initialization script
-- `doc/taal.txt` - Vim help documentation
+- `doc/neogram.txt` - Vim help documentation
 
 ## Running tests
 
@@ -50,7 +50,7 @@ stylua lua/ tests/
 - **Tests**: Files named `test_<module>.lua`, test sets use `T["function_name.scenario"]`
 - **Mocking**: Tests use `tests/mock.lua` which tracks function calls via metatable-based argument capture
 - **Dependency injection**: `init.lua` wires everything together; `commands.setup()` receives dependencies as arguments rather than requiring them directly
-- **No default keybindings**: The plugin exposes user commands (`TaalGrammar`, `TaalHover`, etc.) but leaves keymapping to the user
+- **No default keybindings**: The plugin exposes user commands (`NeogramGrammar`, `NeogramHover`, etc.) but leaves keymapping to the user
 
 ## Dependencies
 

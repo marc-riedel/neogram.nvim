@@ -1,187 +1,275 @@
-# Taal
+# Neogram
 
-A Neovim plugin that uses LLMs to improve the grammar and spelling of natural language text.
+Neogram is a Neovim plugin that uses LLMs (Claude, Gemini, OpenAI) to check
+grammar and spelling of natural language prose — directly in your buffer. It
+highlights changes at word granularity, supports visual selections and
+multi-line paragraphs, streams suggestions asynchronously, and lets you step
+through corrections with your existing diagnostic keybindings.
+
+Neogram is a fork of [taal.nvim](https://github.com/bennorichters/taal.nvim)
+and extends it with visual/paragraph selection, async requests with cancel,
+navigation, status-line progress, and more.
 
 ## Features
 
-- Suggests grammar and spelling improvements. This feature is language agnostic, as long as the chosen LLM is capable of that.
-- Offers a word-by-word diff of the original text and the suggested improvements.
-- Applies improvements all at once, or on a one-to-one basis.
-- Interacts with the LLM using a user command and the selected text.
-- Supports three LLMs: Claude, Gemini, OpenAI-responses.
+- **Grammar and spelling checks** — language-agnostic, limited only by the LLM.
+- **Word-level diffs** — original and corrected text are compared per-word and
+  highlighted inline or offered in a scratch buffer.
+- **Visual selection** — run the check on a `v`/`V` selection; single-line
+  selections use a column offset, multi-line selections map byte positions back
+  to buffer coordinates for accurate highlights.
+- **Paragraph detection** — without a selection, Neogram operates on the whole
+  paragraph the cursor is in (bounded by blank lines), not just the current
+  line.
+- **Asynchronous requests** — the UI never blocks. A request can be canceled at
+  any time with `<Esc>`.
+- **Status-line indicator** — fires `User NeogramRequestStarted` /
+  `User NeogramRequestFinished` autocmds and ticks a 100ms redraw so your
+  status line can show a spinner and elapsed seconds. A ready-to-use
+  `lualine.nvim` component is included below.
+- **Navigation** — `NeogramApplyNext` / `NeogramApplyPrev` apply the suggestion
+  under the cursor (if any) and jump to the next/previous suggestion. Combined
+  with `NeogramReject`, you can walk through a paragraph and accept or reject
+  each change with two keys.
+- **Interact mode** — visual-select a passage, prompt the LLM for an edit
+  (translate, shorten, rephrase) and stream the answer into a scratch buffer.
+- **Named scratch buffers** — `Grammar Suggestions` and `Neogram Interact`
+  rather than anonymous temp buffers.
+- **Multiple adapters** — Claude, Gemini, and OpenAI (Responses API); Ollama is
+  supported for local testing.
 
-Show errors and suggestions as inlay hints
-![Show errors wih inlay hints](assets/inlay.png)
-
-or in a scratch buffer.
-![Show errors wih in a scratch buffer](assets/scratch.png)
+![Inlay hint suggestions](assets/inlay.png)
+![Scratch buffer diff](assets/scratch.png)
 
 ### Limitations
 
-- Suggestions are only made for the current paragraph, i.e., the text between two line breaks, under cursor.
-- When the user enters insert mode, the suggestions will be deleted.
+- Suggestions are cleared when you enter insert mode in the affected buffer.
+- Applying a multi-line replacement invalidates the remaining suggestions in
+  that buffer (positions shift unpredictably), so they are cleared.
 
 ## Installation
 
-This plugin uses `curl`.
-- Make sure curl is installed on your system.
-- This plugin has a dependency on [nvim-lua/plenary.nvim](https://github.com/nvim-lua/plenary.nvim) to access curl.
-
-Examples:
-<details>
-<summary><a href="https://nvim-mini.org/mini.nvim/readmes/mini-deps">mini.deps</a></summary>
-
-```lua
-MiniDeps.later(function()
-  MiniDeps.add {
-    source = "bennorichters/taal.nvim",
-    depends = { "nvim-lua/plenary.nvim" },
-  }
-
-  require("taal").setup()
-
-  vim.keymap.set("n", "<leader>tg", "<Cmd>TaalGrammar scratch<Cr>")
-  vim.keymap.set("n", "<leader>tl", "<Cmd>TaalGrammar inlay<Cr>")
-  vim.keymap.set("n", "<leader>tr", "<Cmd>TaalGrammar<Cr>")
-  vim.keymap.set("n", "<leader>th", "<Cmd>TaalHover<Cr>")
-  vim.keymap.set("n", "<leader>ta", "<Cmd>TaalApplySuggestion<Cr>")
-  vim.keymap.set("n", "<leader>ts", "<Cmd>TaalSetSpelllang<Cr>")
-  vim.keymap.set("v", "<leader>ti", "<Cmd>TaalInteract<Cr>") 
-end)
-```
-</details>
+Neogram uses `curl` via [nvim-lua/plenary.nvim](https://github.com/nvim-lua/plenary.nvim).
 
 <details>
 <summary><a href="https://github.com/folke/lazy.nvim/">lazy.nvim</a></summary>
 
 ```lua
 {
-  "bennorichters/taal.nvim",
+  "marc-riedel/neogram.nvim",
   dependencies = { "nvim-lua/plenary.nvim" },
-  keys = {
-    { "<leader>tg", "<cmd>TaalGrammar<cr>" },
-    { "<leader>tl", "<Cmd>TaalGrammar inlay<Cr>" },
-    { "<leader>tr", "<Cmd>TaalGrammar<Cr>" },
-    { "<leader>th", "<Cmd>TaalHover<Cr>" },
-    { "<leader>ta", "<Cmd>TaalApplySuggestion<Cr>" }, 
-    { "<leader>ts", "<Cmd>TaalSetSpelllang<Cr>" },
-    { "<leader>ti", "<Cmd>TaalInteract<Cr>", mode = "v" }, 
+  cmd = {
+    "NeogramGrammar", "NeogramHover", "NeogramApplySuggestion",
+    "NeogramApplyNext", "NeogramApplyPrev", "NeogramSetSpelllang",
+    "NeogramInteract", "NeogramCancel", "NeogramReject",
   },
-  opts = {},
-},
+  keys = {
+    { "<leader>agg", "<Cmd>NeogramGrammar<Cr>",         desc = "Check grammar" },
+    { "<leader>agg", "<Cmd>NeogramGrammar<Cr>", mode = "v", desc = "Check grammar" },
+    { "<leader>agl", "<Cmd>NeogramGrammar inlay<Cr>",   desc = "Check grammar (inlay)" },
+    { "<leader>agl", "<Cmd>NeogramGrammar inlay<Cr>", mode = "v", desc = "Check grammar (inlay)" },
+    { "<leader>agh", "<Cmd>NeogramHover<Cr>",           desc = "Hover suggestion" },
+    { "<leader>aga", "<Cmd>NeogramApplySuggestion<Cr>", desc = "Apply suggestion" },
+    { "<leader>ags", "<Cmd>NeogramSetSpelllang<Cr>",    desc = "Detect spelllang" },
+    { "<leader>agi", "<Cmd>NeogramInteract<Cr>", mode = "v", desc = "Interact with selection" },
+  },
+  opts = {
+    adapter = "openai_responses",
+    model = "gpt-5",
+  },
+}
 ```
+
+</details>
+
+<details>
+<summary><a href="https://nvim-mini.org/mini.nvim/readmes/mini-deps">mini.deps</a></summary>
+
+```lua
+MiniDeps.later(function()
+  MiniDeps.add {
+    source = "marc-riedel/neogram.nvim",
+    depends = { "nvim-lua/plenary.nvim" },
+  }
+  require("neogram").setup()
+end)
+```
+
 </details>
 
 ### API keys
 
-The LLMs need an API key. These keys should be made available via an environment variable:
+Each adapter reads an API key from its own environment variable:
 
-- Claude: `{{CLAUDE_API_KEY}}`
-- Gemini: `{{GEMINI_API_KEY}}`
-- OpenAI_responses: `{{OPENAI_API_KEY}}`
-
-(If you want to use Claude or OpenAI_responses instead of the default Gemini, do not forget to configure the plugin accordingly, see below.)
+| Adapter             | Environment variable |
+| ------------------- | -------------------- |
+| `claude`            | `CLAUDE_API_KEY`     |
+| `gemini`            | `GEMINI_API_KEY`     |
+| `openai_responses`  | `OPENAI_API_KEY`     |
 
 ### Setup
 
-This plugin needs to be set up with `require("taal").setup({})`. The setup arg `{}` is optional and can be a custom config table, to overwrite the defaults. Calling the setup function, with or without a table, is mandatory.
+`require("neogram").setup(opts)` is mandatory. `opts` is optional and
+merged onto the defaults:
 
-<details>
-<summary>Default config</summary>
-	
 ```lua
-  {
-    log_level = "error", -- one of: trace, debug, info, warn, error, fatal
-    timeout = 6000, -- time out for API requests to LLM in ms
-	
-    -- function that can be overriden to take control over the template, i.e.,
-    -- the prompt, that will be sent to the LLM
-    -- see doc/taal.txt (or `:h taal.txt`) for detailed information
-    template_fn = function(_command, default_template, _user_input)
-      return default_template
-    end,
-
-    adapters = {
-      claude = {
-        -- URL for Claude
-        url = "https://api.anthropic.com",
-      },
-      gemini = {
-        -- URL for Gemini
-        url = "https://generativelanguage.googleapis.com"
-      },
-      openai_responses = {
-        -- URL for Openai_responses
-        url = "https://api.openai.com", 
-      },
-    },
-
-    -- default LLM and model, used by all commands if not overriden by one
-    -- of the options below
-    adapter = "gemini", -- one of: claude, gemini, openai_responses
-    model = "gemini-2.5-flash", 
-
-    commands = {
-      grammar = {
-  	    adapter = nil, -- overrides default LLM for TaalGrammar
-	    model = nil, -- overrides default model for TaalGrammar
-      },
-      setspelllang = {
-	    adapter = nil,  -- overrides default LLM for TaalSetSpelllang
-	    model = nil,  -- overrides default model for TaalSetSpelllang
-      },
-	  interact = {
-	    adapter = nil, -- overrides default LLM for TaalInteract
-	    model = nil, -- overrides default model for TaalInteract
-      },
-    },
-  }
+require("neogram").setup({
+  log_level = "error",   -- trace | debug | info | warn | error | fatal
+  timeout   = 6000,      -- request timeout (ms)
+  adapter   = "openai_responses",
+  model     = "gpt-5",
+  -- Per-command overrides:
+  commands = {
+    grammar      = { adapter = nil, model = nil },
+    setspelllang = { adapter = nil, model = nil },
+    interact     = { adapter = nil, model = nil },
+  },
+  -- Optional hook to rewrite the prompt template before it is sent.
+  template_fn = function(_command, default_template, _user_input)
+    return default_template
+  end,
+})
 ```
-</details>
-
-<details>
-<summary>Example config</summary>
-
-This example uses Gemini and the model gemini-2.5-flash as the default LLM (because this config does not override the default), except for the interact command. For that command it will use Claude with the model claude-sonnet-4-5-20250929.
-```lua
-  require("taal").setup({ 
-    commands = {
-      interact = { 
-	    adapter = "claude", model = "claude-sonnet-4-5-20250929", 
-      }
-    }
-  })
-```
-</details>
 
 ## Commands
-The following five commands are exposed:
 
-- `TaalGrammar`  
-  Checks grammar and spelling of the line of text currently under cursor. Grammar and spelling errors are highlighted with the 'TaalIssue' highlight group. This command takes two optional arguments:
-  - <em>inlay</em> - Shows grammar and spelling improvements as inlay hints using the 'TaalInlay' highlight group.
-  - <em>scratch</em> - Writes the complete improved line in a scratch buffer in a vertical split.
-- `TaalHover`  
-  Shows the grammar improvement of the text with the error currently under cursor in a popup.
-- `TaalApplySuggestion`  
-  Applies the suggested improvement of the text with the error currently under cursor. 
-- `TaalSetSpelllang`  
-  Recognizes the language of the text under cursor and sets the spelling language accordingly using the 'spelllang' option.
-- `TaalInteract`  
-  Asks the user for a prompt and sends this, together with the selected text to the LLM. Use in Visual Mode. Note that this ex command cannot be used by using `:TaalInteract` as using the colon will switch Neovim back to normal mode. Map this command to a key using `<Cmd>TaalInteract<Cr>` instead, as in the example below.
+| Command                     | Description                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `:NeogramGrammar [inlay|scratch]` | Check grammar on the visual selection, current paragraph (no selection), or the buffer range in inline mode. |
+| `:NeogramHover`             | Show the suggestion for the error under the cursor in a popup.                                                |
+| `:NeogramApplySuggestion`   | Accept the suggestion under the cursor.                                                                       |
+| `:NeogramApplyNext`         | Accept the suggestion under the cursor (if any) and jump to the next suggestion.                              |
+| `:NeogramApplyPrev`         | Accept the suggestion under the cursor (if any) and jump to the previous suggestion.                          |
+| `:NeogramReject`            | Remove the suggestion under the cursor without applying it.                                                   |
+| `:NeogramCancel`            | Cancel the in-flight LLM request.                                                                             |
+| `:NeogramSetSpelllang`      | Detect the language under the cursor and set `spelllang`.                                                     |
+| `:NeogramInteract`          | Visual-select a passage, prompt the LLM, stream output into a scratch buffer named `Neogram Interact`.        |
 
-## Key mapping
+`NeogramGrammar` modes:
 
-No default key mapping is provided. Here is an example mapping you can use.
+- **inline** (default): highlights changed words in place using `NeogramIssue`
+  highlights.
+- **inlay**: same highlights plus the corrected word as virtual inline text
+  (`NeogramInlay` group).
+- **scratch**: streams the corrected version into a side-by-side scratch
+  buffer named `Grammar Suggestions`.
+
+## A recommended workflow
+
+Check a paragraph, then step through each correction using your existing
+diagnostic keys:
 
 ```lua
-vim.keymap.set("n", "<leader>tg", "<Cmd>TaalGrammar scratch<Cr>")
-vim.keymap.set("n", "<leader>tl", "<Cmd>TaalGrammar inlay<Cr>")
-vim.keymap.set("n", "<leader>tr", "<Cmd>TaalGrammar<Cr>")
-vim.keymap.set("n", "<leader>th", "<Cmd>TaalHover<Cr>")
-vim.keymap.set("n", "<leader>ta", "<Cmd>TaalApplySuggestion<Cr>")
-vim.keymap.set("n", "<leader>ts", "<Cmd>TaalSetSpelllang<Cr>")
+-- Accept or reject suggestions with the same keys you use for diagnostics.
+-- When there is a suggestion at or in the direction of the cursor, these
+-- keys route to Neogram; otherwise they fall back to vim.diagnostic.jump.
+local function neogram_or_diagnostic(forward)
+  return function()
+    local ok, c = pcall(require, "neogram.commands")
+    if ok and c.has_suggestion_nearby and c.has_suggestion_nearby(forward) then
+      if forward then c.apply_next() else c.apply_prev() end
+      return
+    end
+    vim.diagnostic.jump({ count = forward and 1 or -1, float = true })
+  end
+end
+vim.keymap.set("n", "]d", neogram_or_diagnostic(true),  { desc = "Next suggestion/diagnostic" })
+vim.keymap.set("n", "[d", neogram_or_diagnostic(false), { desc = "Prev suggestion/diagnostic" })
 
--- Note that this mapping is for Visual Mode
-vim.keymap.set("v", "<leader>ti", "<Cmd>TaalInteract<Cr>") 
+-- Reject the suggestion under the cursor.
+vim.keymap.set("n", "\\", function()
+  local ok, c = pcall(require, "neogram.commands")
+  if ok and c.reject_suggestion() then return end
+end, { desc = "Reject Neogram suggestion" })
+
+-- Cancel an in-flight request.
+vim.keymap.set("n", "<Esc>", function()
+  local ok, c = pcall(require, "neogram.commands")
+  if ok and c.cancel and c.cancel() then return "" end
+  vim.cmd("noh")
+  return "<Esc>"
+end, { expr = true, desc = "Cancel Neogram / clear hlsearch" })
 ```
+
+With this setup:
+
+- `]d` advances through Neogram suggestions *or* diagnostics, accepting the
+  one under the cursor.
+- `[d` does the same in reverse.
+- `\` rejects a suggestion without applying.
+- `<Esc>` cancels an in-flight request (and still clears `hlsearch` otherwise).
+
+## Status line integration (lualine)
+
+Neogram fires `User NeogramRequestStarted` and `User NeogramRequestFinished`
+autocmds and ticks a 100ms `redrawstatus`, so a plain lualine component is
+enough to show a spinner and elapsed time. Drop this into your config:
+
+```lua
+-- ~/.config/nvim/lua/lualine_neogram.lua
+local M = require("lualine.component"):extend()
+
+M.processing    = false
+M.spinner_index = 1
+M.start_time    = nil
+
+local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+
+function M:init(options)
+  M.super.init(self, options)
+  local group = vim.api.nvim_create_augroup("NeogramHooks", {})
+  vim.api.nvim_create_autocmd("User", {
+    pattern = "NeogramRequest*",
+    group = group,
+    callback = function(req)
+      if req.match == "NeogramRequestStarted" then
+        self.processing = true
+        self.start_time = vim.loop.hrtime()
+      elseif req.match == "NeogramRequestFinished" then
+        self.processing = false
+        self.start_time = nil
+      end
+    end,
+  })
+end
+
+function M:update_status()
+  if not self.processing then return nil end
+  self.spinner_index = (self.spinner_index % #spinner) + 1
+  local elapsed = self.start_time and (vim.loop.hrtime() - self.start_time) / 1e9 or 0
+  return string.format("%s Checking %.1fs", spinner[self.spinner_index], elapsed)
+end
+
+return M
+```
+
+Then add it to a lualine section:
+
+```lua
+table.insert(opts.sections.lualine_c or {}, require("lualine_neogram"))
+```
+
+## Lua API
+
+The following functions are available on `require("neogram.commands")`:
+
+| Function                             | Returns  | Notes                                                                                 |
+| ------------------------------------ | -------- | ------------------------------------------------------------------------------------- |
+| `grammar_inline_lines(start, end, inlay)` | nil   | Programmatic inline grammar check on a 1-indexed line range.                          |
+| `apply_suggestion()`                 | nil      | Apply the suggestion at the cursor.                                                   |
+| `apply_next()`                       | nil      | Apply suggestion at cursor (if any), then move to next.                               |
+| `apply_prev()`                       | nil      | Apply suggestion at cursor (if any), then move to previous.                           |
+| `reject_suggestion()`                | bool     | `true` if a suggestion under the cursor was removed.                                  |
+| `cancel()`                           | bool     | `true` if an in-flight request was canceled.                                          |
+| `has_suggestions_in_buffer()`        | bool     | Whether any suggestion exists in the current buffer.                                  |
+| `has_suggestion_nearby(forward)`     | bool     | Whether the cursor is on a suggestion or one exists in the requested direction.       |
+
+## Highlight groups
+
+- `NeogramIssue` — the original text with an error.
+- `NeogramImprovement` — the corrected text (used in the scratch buffer).
+- `NeogramInlay` — inline virtual text for inlay mode.
+
+## License
+
+Same as the upstream project (MIT). See `LICENSE`.

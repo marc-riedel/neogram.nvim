@@ -2,7 +2,7 @@ require("tests.helpers").enable_log()
 
 local new_set = MiniTest.new_set
 local eq = MiniTest.expect.equality
-local config = require("taal.config")
+local config = require("neogram.config")
 
 local T = new_set()
 

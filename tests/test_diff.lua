@@ -1,6 +1,6 @@
 local new_set = MiniTest.new_set
 local eq = MiniTest.expect.equality
-local differ = require("taal.diff")
+local differ = require("neogram.diff")
 
 local T = new_set()
 

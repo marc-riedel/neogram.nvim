@@ -1,4 +1,4 @@
-local log = require("taal.log")
+local log = require("neogram.log")
 
 local M = { bufnr = -1, line = 0, column = 0, content = "" }
 M.__index = M
@@ -7,7 +7,7 @@ function M:new()
   return setmetatable({}, self)
 end
 
-function M:create_scratch_buffer()
+function M:create_scratch_buffer(name)
   self.bufnr = vim.api.nvim_create_buf(true, true)
 
   vim.cmd("vsplit")
@@ -18,6 +18,15 @@ function M:create_scratch_buffer()
   vim.bo[self.bufnr].bufhidden = "hide"
   vim.bo[self.bufnr].swapfile = false
   vim.bo[self.bufnr].filetype = "markdown"
+
+  if name then
+    for i = 0, 99 do
+      local candidate = i == 0 and name or string.format("%s (%d)", name, i)
+      if pcall(vim.api.nvim_buf_set_name, self.bufnr, candidate) then
+        break
+      end
+    end
+  end
 
   return self.bufnr
 end

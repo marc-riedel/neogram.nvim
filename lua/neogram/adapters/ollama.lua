@@ -1,4 +1,4 @@
-local log = require("taal.log")
+local log = require("neogram.log")
 
 local function convert(template, model)
   local result = {

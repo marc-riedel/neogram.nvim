@@ -1,9 +1,9 @@
-local config = require("taal.config")
+local config = require("neogram.config")
 
 local M = {}
 
 function M.check()
-  vim.health.start("health checks for taal.nvim")
+  vim.health.start("health checks for neogram.nvim")
 
   if vim.fn.executable("curl") == 1 then
     vim.health.ok("curl is available")

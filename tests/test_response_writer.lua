@@ -1,7 +1,7 @@
 local Helpers = require("tests.helpers")
 local eq = MiniTest.expect.equality
 local child, T = Helpers.new_child_with_set([[
-  RW = require("taal.response_writer")
+  RW = require("neogram.response_writer")
   w = RW:new()
   w:create_scratch_buffer()
 ]])

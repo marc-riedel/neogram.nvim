@@ -1,9 +1,9 @@
 local new_set = MiniTest.new_set
 local eq = MiniTest.expect.equality
-local format = require("taal.template_formatter")
-local grammar = require("taal.templates.grammar")
-local interact = require("taal.templates.interact_with_content")
-local languague = require("taal.templates.recognize_language")
+local format = require("neogram.template_formatter")
+local grammar = require("neogram.templates.grammar")
+local interact = require("neogram.templates.interact_with_content")
+local languague = require("neogram.templates.recognize_language")
 
 local T = new_set()
 

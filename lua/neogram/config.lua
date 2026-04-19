@@ -50,7 +50,7 @@ M.defaults = {
 }
 
 local function get_adapter(adapter_name)
-  local adapter = require("taal.adapters." .. adapter_name)
+  local adapter = require("neogram.adapters." .. adapter_name)
   adapter.url = M.settings.adapters[adapter_name].url
   return adapter
 end

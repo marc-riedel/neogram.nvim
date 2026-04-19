@@ -1,7 +1,7 @@
 local Helpers = require("tests.helpers")
 local eq = MiniTest.expect.equality
 local child, T = Helpers.new_child_with_set([[
-  h = require("taal.buffer_helper")
+  h = require("neogram.buffer_helper")
   h.setup()
 ]])
 
@@ -37,7 +37,7 @@ T["buffer_helper.add_hl_group"] = function()
     line_nr = 1,
     col_start = 1,
     col_end = 3,
-    hl_group = "TaalIssue"
+    hl_group = "NeogramIssue"
   })]])
 
   local mark = child.api.nvim_buf_get_extmark_by_id(0, ns, id, {})
@@ -55,7 +55,7 @@ T["buffer_helper.delete_hl_group"] = function()
     line_nr = 1,
     col_start = 1,
     col_end = 3,
-    hl_group = "TaalIssue"
+    hl_group = "NeogramIssue"
   })]])
 
   child.lua("h.delete_hl_group(0, " .. id .. ")")
