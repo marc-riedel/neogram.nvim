@@ -8,7 +8,7 @@ neogram.nvim is a Neovim plugin written in Lua that uses LLMs (Claude, Gemini, O
 
 - `lua/neogram/` - Main source code
   - `adapters/` - LLM provider implementations (claude, gemini, ollama, openai_responses)
-  - `templates/` - Prompt templates (grammar, interact, recognize_language)
+  - `templates/` - Prompt templates (grammar)
   - `init.lua` - Plugin entry point and setup
   - `commands.lua` - User command implementations
   - `config.lua` - Configuration management
@@ -50,7 +50,7 @@ stylua lua/ tests/
 - **Tests**: Files named `test_<module>.lua`, test sets use `T["function_name.scenario"]`
 - **Mocking**: Tests use `tests/mock.lua` which tracks function calls via metatable-based argument capture
 - **Dependency injection**: `init.lua` wires everything together; `commands.setup()` receives dependencies as arguments rather than requiring them directly
-- **No default keybindings**: The plugin exposes user commands (`NeogramGrammar`, `NeogramHover`, etc.) but leaves keymapping to the user
+- **No default keybindings**: The plugin exposes user commands (`NeogramGrammar`, `NeogramApplySuggestion`, etc.) but leaves keymapping to the user
 
 ## Dependencies
 

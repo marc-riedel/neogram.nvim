@@ -28,15 +28,12 @@ M.setup = function(user_cfg)
   vim.api.nvim_create_user_command("NeogramGrammar", commands.grammar, {
     nargs = "*",
     complete = function()
-      return { "scratch", "inlay" }
+      return { "scratch" }
     end,
   })
-  vim.api.nvim_create_user_command("NeogramHover", commands.hover, {})
   vim.api.nvim_create_user_command("NeogramApplySuggestion", commands.apply_suggestion, {})
   vim.api.nvim_create_user_command("NeogramApplyNext", commands.apply_next, {})
   vim.api.nvim_create_user_command("NeogramApplyPrev", commands.apply_prev, {})
-  vim.api.nvim_create_user_command("NeogramSetSpelllang", commands.set_spelllang, {})
-  vim.api.nvim_create_user_command("NeogramInteract", commands.interact, {})
   vim.api.nvim_create_user_command("NeogramCancel", commands.cancel, {})
   vim.api.nvim_create_user_command("NeogramReject", commands.reject_suggestion, {})
 end

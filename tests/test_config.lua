@@ -50,36 +50,21 @@ T["config"]["setup.invalid_command_grammar_adapter"] = function()
   eq(config.settings, config.defaults)
 end
 
-T["config"]["setup.invalid_command_spelllang_adapter"] = function()
-  config.setup({ commands = { set_spelllang = { adapter = "x" } } })
-  eq(config.settings, config.defaults)
-end
-
-T["config"]["setup.invalid_command_spelllang_adapter"] = function()
-  config.setup({ commands = { set_spelllang = { adapter = "x" } } })
-  eq(config.settings, config.defaults)
-end
-
-T["config"]["setup.invalid_command_interact_adapter"] = function()
-  config.setup({ commands = { interact = { adapter = "x" } } })
-  eq(config.settings, config.defaults)
-end
-
 T["config"]["all_adapters.default_not_overriden"] = function()
   config.setup({
-    commands = { grammar = { adapter = "x" }, interact = { adapter = "a" } },
+    commands = { grammar = { adapter = "x" } },
   })
 
-  eq({ "a", "gemini", "x" }, config.all_adapters())
+  eq({ "gemini", "x" }, config.all_adapters())
 end
 
 T["config"]["all_adapters.default_overriden"] = function()
   config.setup({
     adapter = "y",
-    commands = { grammar = { adapter = "x" }, interact = { adapter = "a" } },
+    commands = { grammar = { adapter = "x" } },
   })
 
-  eq({ "a", "x", "y" }, config.all_adapters())
+  eq({ "x", "y" }, config.all_adapters())
 end
 
 T["config"]["adapters_supported.ok"] = function()
@@ -87,15 +72,15 @@ T["config"]["adapters_supported.ok"] = function()
   eq(config.adapters_supported(config.all_adapters()), true)
 end
 
-T["config"]["adapters_supported.one_ok_two_wrong"] = function()
+T["config"]["adapters_supported.default_ok_command_wrong"] = function()
   config.setup({
-    commands = { grammar = { adapter = "x" }, interact = { adapter = "y" } },
+    commands = { grammar = { adapter = "x" } },
   })
 
   local ok, adpts = config.adapters_supported(config.all_adapters())
 
   eq(ok, false)
-  eq(adpts, { "x", "y" })
+  eq(adpts, { "x" })
 end
 
 T["config"]["adapters_key_available.gemini_exists"] = function()

@@ -38,14 +38,6 @@ M.defaults = {
       adapter = nil,
       model = nil,
     },
-    set_spelllang = {
-      adapter = nil,
-      model = nil,
-    },
-    interact = {
-      adapter = nil,
-      model = nil,
-    },
   },
 }
 
@@ -127,14 +119,6 @@ M.command_adapter_model = function()
     grammar = {
       adapter = get_adapter(cmds.grammar.adapter or settings.adapter),
       model = cmds.grammar.model or settings.model,
-    },
-    set_spelllang = {
-      adapter = get_adapter(cmds.set_spelllang.adapter or settings.adapter),
-      model = cmds.set_spelllang.model or settings.model,
-    },
-    interact = {
-      adapter = get_adapter(cmds.interact.adapter or settings.adapter),
-      model = cmds.interact.model or settings.model,
     },
   }
 end

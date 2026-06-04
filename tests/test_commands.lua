@@ -60,8 +60,10 @@ T["grammar"] = function()
   local buf_nr = Mock.buffhelp.current_buffer_nr()
   local info1 = get_info1(buf_nr)
   info1.hl_id = 101
+  info1.inlay_id = 201
   local info3 = get_info3(buf_nr)
   info3.hl_id = 102
+  info3.inlay_id = 202
 
   eq(cmd.all_diff_info, { info1, info3 })
 end
@@ -101,53 +103,6 @@ T["grammar_scratch"] = function()
   eq(Mock.args_store.buffer_helper.add_hl_group, { { info1 }, { info2 }, { info3 }, { info4 } })
 
   vim.ui.select = old_select
-end
-
-T["grammar_inlay"] = function()
-  cmd.grammar({ fargs = { "inlay" } })
-
-  local buf_nr = Mock.buffhelp.current_buffer_nr()
-  local info1 = get_info1(buf_nr)
-  info1.hl_id = 101
-  info1.inlay_id = 201
-
-  local info3 = get_info3(buf_nr)
-  info3.hl_id = 102
-  info3.inlay_id = 202
-
-  eq(cmd.all_diff_info, { info1, info3 })
-end
-
-T["hover.first_word"] = function()
-  local buf_nr = Mock.buffhelp.current_buffer_nr()
-  local info1 = get_info1(buf_nr)
-  cmd.all_diff_info = { vim.deepcopy(info1) }
-
-  Mock.values.buffer_helper.column_nr = 15
-
-  cmd.hover()
-  eq(Mock.args_store.buffer_helper.show_hover, { { "brighter" } })
-end
-
-T["hover.before_first_word"] = function()
-  local buf_nr = Mock.buffhelp.current_buffer_nr()
-  local info1 = get_info1(buf_nr)
-  cmd.all_diff_info = { vim.deepcopy(info1) }
-
-  cmd.hover()
-  eq(Mock.args_store.buffer_helper.show_hover, nil)
-end
-
-T["hover.empty_word"] = function()
-  local buf_nr = Mock.buffhelp.current_buffer_nr()
-  local info1 = get_info1(buf_nr)
-  info1.alt_text = ""
-  cmd.all_diff_info = { vim.deepcopy(info1) }
-
-  Mock.values.buffer_helper.column_nr = 15
-
-  cmd.hover()
-  eq(Mock.args_store.buffer_helper.show_hover, { { "[REMOVE]" } })
 end
 
 T["apply_suggestion.apply_to_first_word"] = function()
@@ -255,62 +210,6 @@ T["apply_suggestion.apply_to_first_word.inlay"] = function()
   info3_updated.inlay_id = 201
 
   eq(cmd.all_diff_info, { info3_updated })
-end
-
-T["set_spelllang.normal_behaviour"] = function()
-  local old_spelllang = vim.o.spelllang
-
-  cmd.set_spelllang()
-  eq(vim.o.spelllang, "hu")
-  eq(Mock.args_store.template_sender.send[1][2], Mock.values.template_sender.templates.language)
-
-  vim.o.spelllang = old_spelllang
-end
-
-T["interact.no_visual_selection"] = function()
-  local old_input = vim.ui.input
-  local notify_called = false
-  local old_notify = vim.notify
-
-  ---@diagnostic disable-next-line: duplicate-set-field
-  vim.ui.input = function(_opts, on_confirm)
-    return on_confirm("user input")
-  end
-
-  ---@diagnostic disable-next-line: duplicate-set-field
-  vim.notify = function()
-    notify_called = true
-  end
-
-  Mock.values.buffer_helper.visual_selection = nil
-
-  cmd.interact()
-
-  eq(Mock.args_store.template_sender, nil)
-  eq(notify_called, true)
-
-  vim.ui.input = old_input
-  vim.notify = old_notify
-end
-
-T["interact.normal_behaviour"] = function()
-  local old_input = vim.ui.input
-
-  local user_input = "user input"
-  ---@diagnostic disable-next-line: duplicate-set-field
-  vim.ui.input = function(_opts, on_confirm)
-    return on_confirm(user_input)
-  end
-
-  cmd.interact()
-
-  eq(Mock.args_store.template_sender.stream[1][2], Mock.values.template_sender.templates.interact)
-  eq(
-    Mock.args_store.template_sender.stream[1][3],
-    { user_input, Mock.values.buffer_helper.visual_selection }
-  )
-
-  vim.ui.input = old_input
 end
 
 return T

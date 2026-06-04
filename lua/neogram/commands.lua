@@ -3,8 +3,6 @@ local log = require("neogram.log")
 local status = require("neogram.status")
 local text_prompt = require("neogram.text_prompt")
 local tpl_grammar = require("neogram.templates.grammar")
-local tpl_interact = require("neogram.templates.interact_with_content")
-local tpl_language = require("neogram.templates.recognize_language")
 
 local M = { all_diff_info = {} }
 
@@ -275,21 +273,16 @@ M.setup = function(buffer_helper, template_sender, adapter_model, template_fn)
 end
 
 M.grammar = function(opts)
-  local scratch = opts.fargs[1] == "scratch" or opts.fargs[2] == "scratch"
-  local inlay = opts.fargs[1] == "inlay" or opts.fargs[2] == "inlay"
+  local scratch = opts.fargs[1] == "scratch"
 
-  if
-    (#opts.fargs == 1 and not scratch and not inlay)
-    or (#opts.fargs == 2 and not (scratch and inlay))
-    or #opts.fargs > 2
-  then
+  if #opts.fargs > 1 or (#opts.fargs == 1 and not scratch) then
     return error("wrong arguments supplied")
   end
 
   if scratch then
-    grammar_scratch_buf(inlay)
+    grammar_scratch_buf(false)
   else
-    grammar_inline(inlay)
+    grammar_inline(true)
   end
 end
 
@@ -297,19 +290,6 @@ local function info_contains_pos(info, line_nr, col_nr)
   local end_line_nr = info.end_line_nr or info.line_nr
   return pos_le(info.line_nr, info.col_start, line_nr, col_nr)
     and pos_le(line_nr, col_nr, end_line_nr, info.col_end)
-end
-
-M.hover = function()
-  local buf_nr = M.buffer_helper.current_buffer_nr()
-  local line_nr = M.buffer_helper.current_line_nr()
-  local col_nr = M.buffer_helper.current_column_nr()
-  for _, info in ipairs(M.all_diff_info) do
-    if info.buf_nr == buf_nr and info_contains_pos(info, line_nr, col_nr) then
-      local hover_text = (info.alt_text == "") and "[REMOVE]" or info.alt_text
-      M.buffer_helper.show_hover(hover_text)
-      return
-    end
-  end
 end
 
 M.apply_suggestion = function()
@@ -506,50 +486,6 @@ M.reject_suggestion = function()
     end
   end
   return false
-end
-
-M.set_spelllang = function()
-  local text_under_cursor = M.buffer_helper.text_under_cursor()
-  local template = M.template_fn("set_spelllang", tpl_language, text_under_cursor)
-  vim.notify("Detecting language...", vim.log.levels.INFO)
-  vim.cmd("redraw")
-  local code = M.template_sender.send(M.adapter_model["set_spelllang"], template, text_under_cursor)
-  if code then
-    log.fmt_info("setting spelllang to: %s", code)
-    vim.o.spelllang = code
-  else
-    log.fmt_error("no content returned for setting spelllang")
-  end
-end
-
-M.interact = function()
-  local selection = M.buffer_helper.visual_selection()
-  if not selection then
-    vim.notify("No visual selection found.", vim.log.levels.WARN)
-    return
-  end
-  exit_visual_mode()
-
-  vim.ui.input({ prompt = "Give instructions: " }, function(command)
-    if command then
-      local template_subs = { command, selection }
-      log.fmt_trace("interact content=%s", template_subs)
-      local template = M.template_fn("interact", tpl_interact, template_subs)
-      local token = status.start()
-      M.template_sender.stream(
-        M.adapter_model["interact"],
-        template,
-        template_subs,
-        function()
-          if not status.is_current(token) then
-            return
-          end
-          status.finish()
-        end,
-        "Neogram Interact"
-      )
-    end
-  end)
 end
 
 return M

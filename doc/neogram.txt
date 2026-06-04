@@ -13,11 +13,6 @@ FEATURES
 
 - Applies improvements all at once, or on a one-to-one basis.
 
-- Recognizes the language the text is written in and sets the correct
-  |spelllang| option.
-  
-- Interacts with the LLM using a user command and the selected text.
-
 - Supports three LLMs: Claude, Gemini, OpenAI-responses.
 
 DEPENDENCIES
@@ -46,7 +41,7 @@ The user configuration table supports these fields:
 - {log_level} (`'trace'|'info'|'debug'|'error'`, default: `'error'`)
 - {timeout} (`integer`, default: `6000`) timeout for LLM requests in ms
 - {template_fn} (`fn(command: string, default_template: table, user_input: table)`) 
-  - `command` can be <grammar>, <interact> or <language> and refers to the
+  - `command` is <grammar> and refers to the
     user command that triggered this call
   - `default_template` the template that is the default choice for this `command` 
   - `user_input` an array (table) of user input. These values will replace the
@@ -57,10 +52,8 @@ The user configuration table supports these fields:
   - <examples>? (`table`) an array of alternating user and assistant messages
     that serve as an example
   - <message> (`string`) the message that is sent to the LLM. This message can
-    hold placeholders that will be replaced by `user_input`. For the commands
-    <grammar> and <language> `user_input` has one item (the text under cursor), 
-    for <interact> it has two items; the command the user is prompted for and
-    the selected text in visual mode.
+    hold placeholders that will be replaced by `user_input`. For the command
+    <grammar> `user_input` has one item (the text under cursor).
 
   Note: The returned template will be processed by the relevant adapter 
   before it is send to the LLM. The returned template must therefore adhere 
@@ -73,7 +66,7 @@ The user configuration table supports these fields:
 - {adapter} (`'claude'|'gemini'|'openai'`, default: `'gemini'`) default
   adapter for all requests
 - {model} (`string`, default: `'gemini-2.5-flash'`) default model for all requests
-- {commands} (`table<'grammar'|'interact'|'setspelllang', `
+- {commands} (`table<'grammar', `
   `table<[ADAPTER|MODEL],[VALUE]>>`) overrides the default adapter and model
   per command
 
@@ -101,19 +94,7 @@ The default config is:
     model = "gemini-2.5-flash",
 
     commands = {
-      improve_grammar = {
-        adapter = nil,
-        model = nil,
-      },
-      suggest_grammar = {
-        adapter = nil,
-        model = nil,
-      },
-      set_spelllang = {
-        adapter = nil,
-        model = nil,
-      },
-      interact = {
+      grammar = {
         adapter = nil,
         model = nil,
       },
@@ -123,13 +104,13 @@ The default config is:
 Example config ~
 
 This example uses Gemini and the model gemini-2.5-flash as the default LLM (because it
-is not changed), except for the interact command. For that command it will use
+is not changed), except for the grammar command. For that command it will use
 Claude with the model claude-sonnet-4-5-20250929.
 >lua
-  { 
+  {
     commands = {
-      interact = { 
-	adapter="claude", model="claude-sonnet-4-5-20250929", 
+      grammar = {
+	adapter="claude", model="claude-sonnet-4-5-20250929",
       }
     }
   }
@@ -142,27 +123,12 @@ NeogramApplySuggestion                                       *neogram-apply-sugg
 
 NeogramGrammar                                                        *neogram-grammar*
     Checks grammar and spelling of the line of text currently under cursor. 
-    Grammar and spelling errors are highlighted with the 'NeogramIssue' highlight group.
-    This command takes two optional arguments:
-    - <inlay> Shows grammar and spelling improvements as inlay hints using the 
-      'NeogramInlay' highlight group.
+    Grammar and spelling errors are highlighted with the 'NeogramIssue' highlight
+    group, and the suggested improvements are shown as inlay hints using the
+    'NeogramInlay' highlight group.
+    This command takes one optional argument:
     - <scratch> Writes the complete improved line in a scratch buffer in a vertical
       split.
-
-NeogramHover                                                            *neogram-hover*
-    Shows the grammar improvement of the text with an error currently under
-    cursor in a popup.
-
-NeogramInteract                                                       *neogram-interact*
-    Asks the user for a prompt and sends this, together with the selected text
-    to the LLM. Use in Visual Mode. Note that this ex command cannot be used
-    by using `:NeogramInteract` as using the colon will switch Neovim back to
-    normal mode. Map this command to a key using `<Cmd>NeogramInteract<Cr>`
-    instead.
-
-NeogramSetSpelllang                                             *neogram-set-spelllang*
-    Recognizes the language of the text under cursor and sets the spelling
-    language accordingly using the 'spelllang' option.
 
 HIGHLIGHT GROUPS
 

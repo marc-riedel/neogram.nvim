@@ -31,10 +31,8 @@ navigation, status-line progress, and more.
   under the cursor (if any) and jump to the next/previous suggestion. Combined
   with `NeogramReject`, you can walk through a paragraph and accept or reject
   each change with two keys.
-- **Interact mode** — visual-select a passage, prompt the LLM for an edit
-  (translate, shorten, rephrase) and stream the answer into a scratch buffer.
-- **Named scratch buffers** — `Grammar Suggestions` and `Neogram Interact`
-  rather than anonymous temp buffers.
+- **Named scratch buffer** — `Grammar Suggestions` rather than an anonymous
+  temp buffer.
 - **Multiple adapters** — Claude, Gemini, and OpenAI (Responses API); Ollama is
   supported for local testing.
 
@@ -59,19 +57,14 @@ Neogram uses `curl` via [nvim-lua/plenary.nvim](https://github.com/nvim-lua/plen
   "marc-riedel/neogram.nvim",
   dependencies = { "nvim-lua/plenary.nvim" },
   cmd = {
-    "NeogramGrammar", "NeogramHover", "NeogramApplySuggestion",
-    "NeogramApplyNext", "NeogramApplyPrev", "NeogramSetSpelllang",
-    "NeogramInteract", "NeogramCancel", "NeogramReject",
+    "NeogramGrammar", "NeogramApplySuggestion",
+    "NeogramApplyNext", "NeogramApplyPrev",
+    "NeogramCancel", "NeogramReject",
   },
   keys = {
     { "<leader>agg", "<Cmd>NeogramGrammar<Cr>",         desc = "Check grammar" },
     { "<leader>agg", "<Cmd>NeogramGrammar<Cr>", mode = "v", desc = "Check grammar" },
-    { "<leader>agl", "<Cmd>NeogramGrammar inlay<Cr>",   desc = "Check grammar (inlay)" },
-    { "<leader>agl", "<Cmd>NeogramGrammar inlay<Cr>", mode = "v", desc = "Check grammar (inlay)" },
-    { "<leader>agh", "<Cmd>NeogramHover<Cr>",           desc = "Hover suggestion" },
     { "<leader>aga", "<Cmd>NeogramApplySuggestion<Cr>", desc = "Apply suggestion" },
-    { "<leader>ags", "<Cmd>NeogramSetSpelllang<Cr>",    desc = "Detect spelllang" },
-    { "<leader>agi", "<Cmd>NeogramInteract<Cr>", mode = "v", desc = "Interact with selection" },
   },
   opts = {
     adapter = "openai_responses",
@@ -120,9 +113,7 @@ require("neogram").setup({
   model     = "gpt-5",
   -- Per-command overrides:
   commands = {
-    grammar      = { adapter = nil, model = nil },
-    setspelllang = { adapter = nil, model = nil },
-    interact     = { adapter = nil, model = nil },
+    grammar = { adapter = nil, model = nil },
   },
   -- Optional hook to rewrite the prompt template before it is sent.
   template_fn = function(_command, default_template, _user_input)
@@ -135,22 +126,18 @@ require("neogram").setup({
 
 | Command                     | Description                                                                                                   |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `:NeogramGrammar [inlay|scratch]` | Check grammar on the visual selection, current paragraph (no selection), or the buffer range in inline mode. |
-| `:NeogramHover`             | Show the suggestion for the error under the cursor in a popup.                                                |
+| `:NeogramGrammar [scratch]` | Check grammar on the visual selection, current paragraph (no selection), or the buffer range; corrections show inline with inlay hints. |
 | `:NeogramApplySuggestion`   | Accept the suggestion under the cursor.                                                                       |
 | `:NeogramApplyNext`         | Accept the suggestion under the cursor (if any) and jump to the next suggestion.                              |
 | `:NeogramApplyPrev`         | Accept the suggestion under the cursor (if any) and jump to the previous suggestion.                          |
 | `:NeogramReject`            | Remove the suggestion under the cursor without applying it.                                                   |
 | `:NeogramCancel`            | Cancel the in-flight LLM request.                                                                             |
-| `:NeogramSetSpelllang`      | Detect the language under the cursor and set `spelllang`.                                                     |
-| `:NeogramInteract`          | Visual-select a passage, prompt the LLM, stream output into a scratch buffer named `Neogram Interact`.        |
 
 `NeogramGrammar` modes:
 
 - **inline** (default): highlights changed words in place using `NeogramIssue`
-  highlights.
-- **inlay**: same highlights plus the corrected word as virtual inline text
-  (`NeogramInlay` group).
+  highlights, plus the corrected word as virtual inline text (`NeogramInlay`
+  group).
 - **scratch**: streams the corrected version into a side-by-side scratch
   buffer named `Grammar Suggestions`.
 
